@@ -21,21 +21,18 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
-echo "==> Starting app (port 80)..."
-docker compose up -d app
-
-echo "==> Getting SSL certificate..."
-docker compose run --rm certbot certonly --webroot \
-    -w /var/www/certbot \
+echo "==> Getting SSL certificate (standalone mode)..."
+docker compose stop app
+docker compose run --rm --service-ports certbot certonly --standalone \
     -d "$DOMAIN" \
     --agree-tos --email admin@"$DOMAIN" --non-interactive
+docker compose start app
 
 echo "==> Restarting with SSL..."
 cat > nginx-ssl.conf << EOF
 server {
     listen 80 default_server;
     server_name _;
-    location /.well-known { root /var/www/certbot; }
     location / { return 301 https://\$host\$request_uri; }
 }
 
@@ -56,7 +53,7 @@ server {
 EOF
 
 cp nginx-ssl.conf nginx.conf
-docker compose restart app
+docker compose up -d app
 
 echo ""
 echo "==> Done! https://$DOMAIN/ par chala gaya"
