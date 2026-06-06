@@ -9,8 +9,7 @@ fi
 DOMAIN=$1
 
 echo "==> Checking requirements..."
-command -v docker >/dev/null 2>&1 || { echo "Install Docker first"; exit 1; }
-command -v docker-compose >/dev/null 2>&1 || { echo "Install docker-compose first"; exit 1; }
+command -v docker >/dev/null 2>&1 || { echo "Install Docker first: curl -fsSL https://get.docker.com | sh"; exit 1; }
 
 echo "==> Creating .env from .env.example if missing..."
 if [ ! -f .env ]; then
@@ -23,10 +22,10 @@ if [ ! -f .env ]; then
 fi
 
 echo "==> Starting app (port 80)..."
-docker-compose up -d app
+docker compose up -d app
 
 echo "==> Getting SSL certificate..."
-docker-compose run --rm certbot certonly --webroot \
+docker compose run --rm certbot certonly --webroot \
     -w /var/www/certbot \
     -d "$DOMAIN" \
     --agree-tos --email admin@"$DOMAIN" --non-interactive
@@ -57,7 +56,7 @@ server {
 EOF
 
 cp nginx-ssl.conf nginx.conf
-docker-compose restart app
+docker compose restart app
 
 echo ""
 echo "==> Done! https://$DOMAIN/ par chala gaya"
