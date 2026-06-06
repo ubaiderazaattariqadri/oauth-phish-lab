@@ -8,28 +8,32 @@ fi
 
 DOMAIN=$1
 
-echo "==> Checking requirements..."
-command -v docker >/dev/null 2>&1 || { echo "Install Docker first: curl -fsSL https://get.docker.com | sh"; exit 1; }
+command -v docker >/dev/null 2>&1 || { echo "Install Docker first"; exit 1; }
 
-echo "==> Creating .env from .env.example if missing..."
 if [ ! -f .env ]; then
-    echo "ERROR: Create .env file first with your CLIENT_ID, CLIENT_SECRET, and REDIRECT_URI"
-    echo "Example:"
-    echo 'CLIENT_ID=xxx.apps.googleusercontent.com'
-    echo 'CLIENT_SECRET=GOCSPX-xxxx'
-    echo "REDIRECT_URI=https://$DOMAIN/callback"
+    echo "ERROR: Create .env file first"
     exit 1
 fi
 
-echo "==> Getting SSL certificate (standalone mode)..."
-docker compose stop app
-docker compose run --rm --service-ports certbot certonly --standalone \
-    -d "$DOMAIN" \
-    --agree-tos --email admin@"$DOMAIN" --non-interactive
-docker compose start app
+# Check if SSL cert already exists
+CERT_DIR="/etc/letsencrypt/live/$DOMAIN"
 
-echo "==> Restarting with SSL..."
-cat > nginx-ssl.conf << EOF
+if docker volume inspect oauth-phish-lab_certs >/dev/null 2>&1; then
+    # Check if cert exists in volume
+    HAS_CERT=$(docker run --rm -v oauth-phish-lab_certs:/certs alpine ls /certs/live/$DOMAIN/fullchain.pem 2>/dev/null && echo "yes" || echo "no")
+else
+    HAS_CERT="no"
+fi
+
+if [ "$HAS_CERT" = "no" ]; then
+    echo "==> Getting SSL certificate..."
+    docker compose run --rm --service-ports --entrypoint certbot certbot certonly --standalone \
+        -d "$DOMAIN" --agree-tos --email admin@"$DOMAIN" --non-interactive
+fi
+
+# Generate nginx config with SSL
+echo "==> Generating nginx config..."
+cat > nginx-ssl.conf << NGINXEOF
 server {
     listen 80 default_server;
     server_name _;
@@ -50,13 +54,14 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
 }
-EOF
+NGINXEOF
 
 cp nginx-ssl.conf nginx.conf
-docker compose up -d app
+
+echo "==> Starting containers (detach mode)..."
+docker compose up -d --build
 
 echo ""
-echo "==> Done! https://$DOMAIN/ par chala gaya"
-echo "==> Google Cloud Console mein redirect URI update karna mat bhoolna:"
-echo "    https://$DOMAIN/callback"
-echo "==> Cert auto-renew ho ga har 12 ghante"
+echo "==> Done! https://$DOMAIN/"
+echo "==> Next time just run: docker compose up -d"
+echo "==> Redirect URI: https://$DOMAIN/callback"
