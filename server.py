@@ -21,9 +21,10 @@ SCOPES = ' '.join([
     'openid',
 ])
 
-DB_FILE = 'tokens.db'
+DB_FILE = os.path.join(os.path.dirname(__file__), 'data', 'tokens.db')
 
 def init_db():
+    os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS tokens

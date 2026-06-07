@@ -7,7 +7,6 @@ services:
     env_file:
       - .env
     volumes:
-      - ./tokens.db:/app/tokens.db
       - ./data:/app/data
       - certs:/etc/letsencrypt
     restart: unless-stopped
