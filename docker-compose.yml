@@ -12,12 +12,12 @@ services:
     restart: unless-stopped
 
   certbot:
+    profiles: ["tools"]
     image: certbot/certbot
     ports:
       - "80:80"
     volumes:
       - certs:/etc/letsencrypt
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h; done'"
 
 volumes:
   certs:

@@ -27,7 +27,7 @@ fi
 
 if [ "$HAS_CERT" = "no" ]; then
     echo "==> Getting SSL certificate..."
-    docker compose run --rm --service-ports --entrypoint certbot certbot certonly --standalone \
+    docker compose run --rm --service-ports --profile tools --entrypoint certbot certbot certonly --standalone \
         -d "$DOMAIN" --agree-tos --email admin@"$DOMAIN" --non-interactive
 fi
 
